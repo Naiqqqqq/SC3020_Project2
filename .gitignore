@@ -26,4 +26,4 @@ TPC-H V3.0.1/dbgen/Debug/
 TPC-H V3.0.1/dbgen/Release/
 
 # Optional: exclude heavy benchmark source bundle from repo
-# TPC-H V3.0.1/
+TPC-H V3.0.1/
