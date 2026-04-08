@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# VS/IDE
+.vs/
+.vscode/
+
+# Large datasets and generated benchmark files
+TPC-H V3.0.1/ref_data/
+TPC-H V3.0.1/dbgen/*.tbl
+TPC-H V3.0.1/dbgen/*.set
+TPC-H V3.0.1/dbgen/delete.*
+TPC-H V3.0.1/dbgen/clean_tbl/
+TPC-H V3.0.1/dbgen/Debug/
+TPC-H V3.0.1/dbgen/Release/
+TPC-H V3.0.1/dbgen/*.obj
+TPC-H V3.0.1/dbgen/*.pdb
+TPC-H V3.0.1/dbgen/*.ilk
+TPC-H V3.0.1/dbgen/*.lib
+TPC-H V3.0.1/dbgen/*.exp
+TPC-H V3.0.1/dbgen/*.tlog
+TPC-H V3.0.1/dbgen/*.lastbuildstate
+TPC-H V3.0.1/dbgen/Debug/
+TPC-H V3.0.1/dbgen/Release/
+
+# Optional: exclude heavy benchmark source bundle from repo
+# TPC-H V3.0.1/
