@@ -27,7 +27,7 @@ class QueryAnnotationApp(tk.Tk):
         self.port_var = tk.StringVar(value="5432")
         self.db_var = tk.StringVar(value="postgres")
         self.user_var = tk.StringVar(value="postgres")
-        self.password_var = tk.StringVar(value="postgres")
+        self.password_var = tk.StringVar(value="")
 
         fields = [
             ("Host", self.host_var),
@@ -43,7 +43,7 @@ class QueryAnnotationApp(tk.Tk):
             entry = ttk.Entry(frame, textvariable=var, width=16, show=show)
             entry.grid(row=0, column=idx * 2 + 1, padx=6, pady=6, sticky="we")
 
-        for col in range(10):
+        for col in range(len(fields) * 2):
             frame.grid_columnconfigure(col, weight=1)
 
     def _build_main_panels(self) -> None:
@@ -145,6 +145,9 @@ class QueryAnnotationApp(tk.Tk):
             self.update_idletasks()
             result = self.run_pipeline_fn(config, query)
         except Exception as exc:
+            # Avoid showing stale results from a previous successful run.
+            for text_widget in (self.annotated_text, self.qep_text, self.aqp_text):
+                text_widget.delete("1.0", tk.END)
             messagebox.showerror("Execution Error", str(exc))
             self.status_var.set("Execution failed")
             return
