@@ -1,147 +1,80 @@
-# Setup and Run Guide (Windows)
+# Setup and Run (Windows)
 
-This guide is only for getting the project running end-to-end.
+This guide is machine-independent. Replace placeholder values before running commands.
 
-## 1. Prerequisites
-
-- Windows machine
-- PostgreSQL installed and running
-- Python 3.11+ installed
-- Project folder cloned at:
-  - C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2
-
-## 2. Python Environment and Dependencies
-
-From PowerShell in project root:
+## 1. Set your local values
 
 ```powershell
-C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/.venv/Scripts/python.exe -m pip install psycopg2-binary sqlglot
+$PROJECT_ROOT = "<path to SC3020_Project2>"
+$DB_NAME = "<your database name>"          # Example: sc3020proj
+$DB_USER = "<your postgres user>"          # Example: postgres
+$DB_HOST = "localhost"
+$DB_PORT = "5432"
+
+# Use psql if it's in PATH; otherwise use full path to psql.exe.
+$PSQL = "psql"
 ```
 
-If .venv does not exist yet:
+## 2. Create virtual environment and install packages
 
 ```powershell
+Set-Location $PROJECT_ROOT
 python -m venv .venv
-C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/.venv/Scripts/python.exe -m pip install --upgrade pip
-C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/.venv/Scripts/python.exe -m pip install psycopg2-binary sqlglot
+$PY = "$PROJECT_ROOT/.venv/Scripts/python.exe"
+& $PY -m pip install --upgrade pip
+& $PY -m pip install psycopg2-binary sqlglot
 ```
 
-## 3. Prepare Database (TPC-H)
+## 3. Build and load TPC-H data
 
-Use the same database you will enter in the GUI (example: sc3020proj).
-
-### 3.1 Create schema and tables
+Run scripts in this order on the same database you will use in the app:
 
 ```powershell
-& "C:/Program Files/PostgreSQL/18/bin/psql.exe" -h localhost -U postgres -d sc3020proj -f "C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/tpch_schema_postgres.sql"
+& $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$PROJECT_ROOT/tpch_schema_postgres.sql"
+& $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$PROJECT_ROOT/tpch_copy_clean.sql"
+& $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$PROJECT_ROOT/tpch_constraints_postgres.sql"
+& $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$PROJECT_ROOT/tpch_post_load.sql"
 ```
 
-### 3.2 Set data file paths and load rows
+If load fails, update file paths in tpch_copy_clean.sql to your local .tbl files.
 
-The loader script currently points to:
-
-- C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/TPC-H V3.0.1/dbgen/*.tbl
-
-If your files are elsewhere, edit paths in tpch_copy_clean.sql first.
-
-Then run:
+## 4. Verify data loaded
 
 ```powershell
-& "C:/Program Files/PostgreSQL/18/bin/psql.exe" -h localhost -U postgres -d sc3020proj -f "C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/tpch_copy_clean.sql"
+& $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "select 'customer' as t, count(*) from tpch.customer union all select 'orders', count(*) from tpch.orders union all select 'nation', count(*) from tpch.nation;"
 ```
 
-### 3.3 Add constraints
+Expected non-zero counts:
 
-```powershell
-& "C:/Program Files/PostgreSQL/18/bin/psql.exe" -h localhost -U postgres -d sc3020proj -f "C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/tpch_constraints_postgres.sql"
-```
-
-### 3.4 Analyze for optimizer stats
-
-```powershell
-& "C:/Program Files/PostgreSQL/18/bin/psql.exe" -h localhost -U postgres -d sc3020proj -f "C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/tpch_post_load.sql"
-```
-
-## 4. Verify Data Loaded
-
-```powershell
-& "C:/Program Files/PostgreSQL/18/bin/psql.exe" -h localhost -U postgres -d sc3020proj -c "select 'customer' as t, count(*) from tpch.customer union all select 'orders', count(*) from tpch.orders union all select 'nation', count(*) from tpch.nation;"
-```
-
-Expected non-zero counts (for SF1):
-
-- customer around 150000
-- orders around 1500000
+- customer about 150000
+- orders about 1500000
 - nation 25
 
-## 5. Run the App
-
-Always launch with the project venv interpreter:
+## 5. Run GUI
 
 ```powershell
-C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/.venv/Scripts/python.exe project.py
+& $PY "$PROJECT_ROOT/project.py"
 ```
 
-In GUI:
+GUI connection fields:
 
-- Host: localhost
-- Port: 5432
-- Database: sc3020proj (or your actual DB)
-- User: postgres
+- Host: value of $DB_HOST
+- Port: value of $DB_PORT
+- Database: value of $DB_NAME
+- User: value of $DB_USER
 - Password: your PostgreSQL password
 
-Then click Run Annotation.
-
-## 6. Run in CLI (Optional)
-
-Single query:
+## 6. Optional CLI run
 
 ```powershell
-C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/.venv/Scripts/python.exe project.py --nogui --query "select * from tpch.customer" --host localhost --port 5432 --dbname sc3020proj --user postgres --password YOUR_PASSWORD
+& $PY "$PROJECT_ROOT/project.py" --nogui --query-file "$PROJECT_ROOT/demo_queries.sql" --all-queries --host $DB_HOST --port $DB_PORT --dbname $DB_NAME --user $DB_USER --password "<your password>"
 ```
 
-All demo queries:
+## 7. Quick troubleshooting
 
-```powershell
-C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/.venv/Scripts/python.exe project.py --nogui --query-file demo_queries.sql --all-queries --host localhost --port 5432 --dbname sc3020proj --user postgres --password YOUR_PASSWORD
-```
-
-## 7. Common Issues
-
-### psql is not recognized
-
-Use full path:
-
-```powershell
-& "C:/Program Files/PostgreSQL/18/bin/psql.exe" ...
-```
-
-### pip is not recognized
-
-Use Python module form:
-
-```powershell
-C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/.venv/Scripts/python.exe -m pip install psycopg2-binary sqlglot
-```
-
-### psycopg2 not installed popup in GUI
-
-You launched with a different Python interpreter. Start app with:
-
-```powershell
-C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/.venv/Scripts/python.exe project.py
-```
-
-### relation tpch.<table> does not exist
-
-Your data is not in tpch schema, or was loaded into another DB/schema.
-
-Check:
-
-```sql
-SELECT to_regclass('tpch.customer'), to_regclass('tpch.orders'), to_regclass('tpch.nation');
-```
-
-### extra data after last expected column during COPY
-
-Your source may be raw dbgen output with trailing delimiter. Use cleaned files or preprocess to remove final trailing pipe before loading.
+- psql not recognized:
+  - Set $PSQL to full path, for example C:/Program Files/PostgreSQL/18/bin/psql.exe
+- psycopg2 missing in GUI:
+  - Launch app with $PY, not global python
+- relation tpch.<table> does not exist:
+  - Data loaded into wrong database/schema or scripts were run against another DB

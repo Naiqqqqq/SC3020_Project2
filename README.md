@@ -2,6 +2,8 @@
 
 This project analyzes a SQL query using PostgreSQL's optimizer output, then produces a human-readable annotated version of the query.
 
+For a setup-only checklist, see [SETUP_AND_RUN.md](SETUP_AND_RUN.md).
+
 At a high level, it does three things:
 
 1. Gets the baseline Query Execution Plan (QEP) via EXPLAIN FORMAT JSON.
@@ -152,7 +154,9 @@ python -m pip install psycopg2-binary sqlglot
 If pip is not on PATH (common on Windows), run with your project venv interpreter:
 
 ```bash
-C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/.venv/Scripts/python.exe -m pip install psycopg2-binary sqlglot
+python -m venv .venv
+.venv/Scripts/python.exe -m pip install --upgrade pip
+.venv/Scripts/python.exe -m pip install psycopg2-binary sqlglot
 ```
 
 ## Quick Start
@@ -162,7 +166,7 @@ C:/Users/mings/OneDrive/Documents/GitHub/SC3020_Project2/.venv/Scripts/python.ex
 Run:
 
 ```bash
-python project.py
+.venv/Scripts/python.exe project.py
 ```
 
 Then in the app:
@@ -180,31 +184,31 @@ Then in the app:
 Run with inline query:
 
 ```bash
-python project.py --nogui --query "select * from tpch.customer"
+.venv/Scripts/python.exe project.py --nogui --query "select * from tpch.customer"
 ```
 
 Run with SQL file:
 
 ```bash
-python project.py --nogui --query-file demo_queries.sql
+.venv/Scripts/python.exe project.py --nogui --query-file demo_queries.sql
 ```
 
 Run one statement from a multi-statement SQL file (1-based index):
 
 ```bash
-python project.py --nogui --query-file demo_queries.sql --query-index 2
+.venv/Scripts/python.exe project.py --nogui --query-file demo_queries.sql --query-index 2
 ```
 
 Run all statements from a multi-statement SQL file:
 
 ```bash
-python project.py --nogui --query-file demo_queries.sql --all-queries
+.venv/Scripts/python.exe project.py --nogui --query-file demo_queries.sql --all-queries
 ```
 
 Supply DB credentials (as needed):
 
 ```bash
-python project.py --nogui --query "select * from tpch.customer" --host localhost --port 5432 --dbname postgres --user postgres --password postgres
+.venv/Scripts/python.exe project.py --nogui --query "select * from tpch.customer" --host <db_host> --port <db_port> --dbname <db_name> --user <db_user> --password <db_password>
 ```
 
 ## Full CLI Arguments
@@ -224,13 +228,28 @@ python project.py --nogui --query "select * from tpch.customer" --host localhost
 
 If you want to run on TPC-H tables from this repo, execute scripts in this order:
 
+PowerShell example:
+
+```powershell
+$PSQL = "psql"   # or full path to psql.exe if not in PATH
+$DB_HOST = "localhost"
+$DB_PORT = "5432"
+$DB_USER = "<db_user>"
+$DB_NAME = "<db_name>"
+
+& $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "tpch_schema_postgres.sql"
+& $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "tpch_copy_clean.sql"
+& $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "tpch_constraints_postgres.sql"
+& $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "tpch_post_load.sql"
+```
+
 1. Create schema and tables:
 
 ```sql
 \i tpch_schema_postgres.sql
 ```
 
-2. Load data (set paths in tpch_copy_clean.sql or pass with psql -v):
+2. Load data (set paths in tpch_copy_clean.sql first):
 
 ```sql
 \i tpch_copy_clean.sql
@@ -250,8 +269,8 @@ If you want to run on TPC-H tables from this repo, execute scripts in this order
 
 Notes:
 
-- tpch_copy_clean.sql uses psql variables (for example, region_file, nation_file) so paths are machine-independent.
-- Edit the variable values at the top of tpch_copy_clean.sql to point to your local .tbl files.
+- Update file paths in tpch_copy_clean.sql to your local .tbl files before loading.
+- If psql is not in PATH, use the full executable path (for example, C:/Program Files/PostgreSQL/18/bin/psql.exe).
 - Running ANALYZE is important for realistic planner estimates.
 
 ## Understanding the Result Tabs
@@ -299,7 +318,7 @@ The app intentionally handles several failure modes safely:
 - Table alias extraction is parser-based when sqlglot is installed; a regex fallback is used only when parser support is unavailable.
 - Reasoning uses estimated optimizer costs, not actual runtime.
 - AQP exploration is limited to a fixed set of planner toggles.
-- tpch_copy_clean.sql still requires setting local file paths, but no user-specific absolute paths are hardcoded.
+- tpch_copy_clean.sql requires local file path updates before loading data.
 
 ## Development Notes
 
