@@ -1,4 +1,13 @@
-"""Utilities for preparing query inputs and retrieving PostgreSQL plans."""
+"""Utilities for preparing query inputs and retrieving PostgreSQL query plans.
+
+This module handles:
+- SQL query normalization and statement splitting
+- PostgreSQL connection management
+- QEP (Query Execution Plan) retrieval via EXPLAIN (FORMAT JSON)
+- AQP (Alternative Query Plan) generation by toggling planner settings
+- Plan tree formatting for display
+- Table/alias extraction from SQL via sqlglot or regex fallback
+"""
 
 from __future__ import annotations
 
@@ -10,19 +19,24 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 try:
     import psycopg2
-except ImportError:  # pragma: no cover - handled at runtime in user environment.
+except ImportError:
     psycopg2 = None
 
 try:
     import sqlglot
     from sqlglot import exp
-except ImportError:  # pragma: no cover - handled at runtime in user environment.
+except ImportError:
     sqlglot = None
     exp = None
 
 
+# ---------------------------------------------------------------------------
+# Data classes
+# ---------------------------------------------------------------------------
+
 @dataclass
 class DBConfig:
+    """PostgreSQL connection parameters."""
     host: str
     port: int
     dbname: str
@@ -32,6 +46,7 @@ class DBConfig:
 
 @dataclass
 class AQPRecord:
+    """One alternative query plan produced by disabling a planner setting."""
     setting: str
     value: str
     plan_json: Dict[str, Any]
@@ -41,24 +56,34 @@ class AQPRecord:
 
 @dataclass
 class PlanBundle:
+    """The baseline QEP together with all generated AQPs for a single query."""
     query: str
     qep_json: Dict[str, Any]
     qep_total_cost: float
     aqps: List[AQPRecord] = field(default_factory=list)
 
 
+# All planner knobs we toggle to produce alternative plans.
 DEFAULT_PLANNER_SETTINGS: Sequence[str] = (
     "enable_nestloop",
     "enable_hashjoin",
     "enable_mergejoin",
     "enable_seqscan",
     "enable_indexscan",
+    "enable_indexonlyscan",
     "enable_bitmapscan",
+    "enable_sort",
+    "enable_material",
+    "enable_hashagg",
 )
 
 
+# ---------------------------------------------------------------------------
+# SQL text helpers
+# ---------------------------------------------------------------------------
+
 def normalize_query(query: str) -> str:
-    """Trim whitespace while preserving SQL content."""
+    """Strip surrounding whitespace and trailing semicolons."""
     cleaned = query.strip()
     if cleaned.endswith(";"):
         cleaned = cleaned[:-1]
@@ -66,7 +91,7 @@ def normalize_query(query: str) -> str:
 
 
 def _fallback_split_sql_statements(sql_text: str) -> List[str]:
-    """Split SQL statements while handling quoted strings and comments."""
+    """Split SQL on semicolons while respecting quotes and comments."""
     statements: List[str] = []
     current: List[str] = []
 
@@ -143,10 +168,10 @@ def _fallback_split_sql_statements(sql_text: str) -> List[str]:
 
 
 def split_sql_statements(sql_text: str) -> List[str]:
-    """Split SQL text into non-empty statements.
+    """Split SQL text into individual non-empty statements.
 
-    Uses sqlglot when available for better PostgreSQL syntax coverage,
-    and falls back to a lightweight splitter when parsing fails.
+    Prefers sqlglot for robust PostgreSQL parsing; falls back to a
+    character-level splitter when the parser is unavailable or chokes.
     """
     if not sql_text or not sql_text.strip():
         return []
@@ -163,40 +188,43 @@ def split_sql_statements(sql_text: str) -> List[str]:
 
 
 def ensure_single_statement(query: str) -> str:
-    """Return a single statement or raise if zero/multiple statements are provided."""
+    """Return exactly one statement from *query*, or raise on 0 / 2+."""
     statements = split_sql_statements(query)
     if not statements:
         raise ValueError("SQL query is empty.")
     if len(statements) > 1:
         raise ValueError(
-            "Multiple SQL statements detected. Provide a single query in this mode, "
-            "or use CLI with --query-file and either --query-index or --all-queries."
+            "Multiple SQL statements detected. Provide a single query, "
+            "or use --query-file with --query-index / --all-queries in CLI mode."
         )
     return statements[0]
 
 
 def load_query_from_file(file_path: str) -> str:
+    """Load the first SQL statement from a file."""
     with open(file_path, "r", encoding="utf-8") as sql_file:
         statements = split_sql_statements(sql_file.read())
-
-    if not statements:
-        return ""
-    return statements[0]
+    return statements[0] if statements else ""
 
 
 def load_queries_from_file(file_path: str) -> List[str]:
+    """Load all SQL statements from a file."""
     with open(file_path, "r", encoding="utf-8") as sql_file:
         return split_sql_statements(sql_file.read())
 
 
+# ---------------------------------------------------------------------------
+# PostgreSQL connection & EXPLAIN
+# ---------------------------------------------------------------------------
+
 def connect_postgres(config: DBConfig):
+    """Open a psycopg2 connection or raise a clear error if the driver is missing."""
     if psycopg2 is None:
         raise ImportError(
-            "psycopg2 is not installed for the Python interpreter running this app. "
+            "psycopg2 is not installed. "
             f"Interpreter: {sys.executable}. "
             f"Install with: \"{sys.executable}\" -m pip install psycopg2-binary"
         )
-
     return psycopg2.connect(
         host=config.host,
         port=config.port,
@@ -207,21 +235,20 @@ def connect_postgres(config: DBConfig):
 
 
 def _parse_explain_payload(payload: Any) -> Dict[str, Any]:
+    """Normalise the raw EXPLAIN JSON output into a single dict."""
     if isinstance(payload, str):
         payload = json.loads(payload)
-
     if isinstance(payload, list):
         if not payload:
             raise ValueError("Empty EXPLAIN payload returned by PostgreSQL.")
         payload = payload[0]
-
     if not isinstance(payload, dict):
         raise ValueError(f"Unexpected EXPLAIN payload type: {type(payload)!r}")
-
     return payload
 
 
 def _execute_explain(cursor, query: str) -> Dict[str, Any]:
+    """Run EXPLAIN (FORMAT JSON) and return the parsed plan dict."""
     cursor.execute(f"EXPLAIN (FORMAT JSON, COSTS TRUE) {query}")
     row = cursor.fetchone()
     if row is None:
@@ -230,6 +257,7 @@ def _execute_explain(cursor, query: str) -> Dict[str, Any]:
 
 
 def extract_total_cost(plan_json: Dict[str, Any]) -> float:
+    """Pull the root node's Total Cost from a plan dict."""
     return float(plan_json.get("Plan", {}).get("Total Cost", 0.0))
 
 
@@ -238,7 +266,12 @@ def get_qep_and_aqps(
     query: str,
     planner_settings: Optional[Sequence[str]] = None,
 ) -> PlanBundle:
-    """Return the baseline QEP and representative AQPs by disabling one planner method at a time."""
+    """Retrieve the baseline QEP and representative AQPs.
+
+    For each planner setting, the method opens a transaction, disables that
+    single knob with SET LOCAL, runs EXPLAIN, and rolls back so no session
+    state leaks.
+    """
     settings = tuple(planner_settings or DEFAULT_PLANNER_SETTINGS)
 
     with conn.cursor() as cursor:
@@ -258,10 +291,8 @@ def get_qep_and_aqps(
                 conn.rollback()
                 aqps.append(
                     AQPRecord(
-                        setting=setting,
-                        value="off",
-                        plan_json={},
-                        total_cost=float("inf"),
+                        setting=setting, value="off",
+                        plan_json={}, total_cost=float("inf"),
                         note=f"Failed to generate AQP: {exc}",
                     )
                 )
@@ -269,24 +300,31 @@ def get_qep_and_aqps(
 
         aqps.append(
             AQPRecord(
-                setting=setting,
-                value="off",
+                setting=setting, value="off",
                 plan_json=alt_plan_json,
                 total_cost=extract_total_cost(alt_plan_json),
             )
         )
 
-    return PlanBundle(query=query, qep_json=qep_json, qep_total_cost=qep_total_cost, aqps=aqps)
+    return PlanBundle(
+        query=query, qep_json=qep_json,
+        qep_total_cost=qep_total_cost, aqps=aqps,
+    )
 
 
-def _iter_plan_nodes(plan_node: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
+# ---------------------------------------------------------------------------
+# Plan tree traversal and formatting
+# ---------------------------------------------------------------------------
+
+def iter_plan_nodes(plan_node: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
+    """Depth-first iterator over every node in a plan tree."""
     yield plan_node
     for child in plan_node.get("Plans", []):
-        yield from _iter_plan_nodes(child)
+        yield from iter_plan_nodes(child)
 
 
 def format_plan_tree(plan_json: Dict[str, Any]) -> str:
-    """Build a compact tree view suitable for GUI text display."""
+    """Render a compact indented text tree from EXPLAIN JSON."""
     root = plan_json.get("Plan", {})
     if not root:
         return "No plan tree found."
@@ -300,6 +338,7 @@ def format_plan_tree(plan_json: Dict[str, Any]) -> str:
         alias = node.get("Alias")
         startup = node.get("Startup Cost")
         total = node.get("Total Cost")
+        rows = node.get("Plan Rows")
 
         extras: List[str] = []
         if relation:
@@ -309,13 +348,18 @@ def format_plan_tree(plan_json: Dict[str, Any]) -> str:
                 extras.append(str(relation))
         if startup is not None and total is not None:
             extras.append(f"cost={startup:.2f}..{total:.2f}")
+        if rows is not None:
+            extras.append(f"rows={rows}")
 
         suffix = f" ({'; '.join(extras)})" if extras else ""
         lines.append(f"{indent}- {node_type}{suffix}")
 
-        for key in ("Hash Cond", "Merge Cond", "Join Filter", "Filter"):
-            if key in node:
-                lines.append(f"{indent}    {key}: {node[key]}")
+        for key in ("Hash Cond", "Merge Cond", "Join Filter", "Filter",
+                     "Sort Key", "Group Key", "Index Cond", "Recheck Cond"):
+            val = node.get(key)
+            if val is not None:
+                display = val if isinstance(val, str) else ", ".join(str(v) for v in val)
+                lines.append(f"{indent}    {key}: {display}")
 
         for child in node.get("Plans", []):
             walk(child, depth + 1)
@@ -324,34 +368,40 @@ def format_plan_tree(plan_json: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# SQL table/alias extraction
+# ---------------------------------------------------------------------------
+
 def extract_table_aliases(query: str) -> List[Tuple[str, Optional[str]]]:
-    """Extract table-alias pairs from SQL without schema hardcoding."""
+    """Return (table_name, alias_or_None) pairs from a SELECT query.
+
+    Uses sqlglot when available; falls back to regex otherwise.
+    Neither path hard-codes any schema or table names.
+    """
     if sqlglot is not None and exp is not None:
         try:
             root = sqlglot.parse_one(query, read="postgres")
             pairs: List[Tuple[str, Optional[str]]] = []
-            seen: set[Tuple[str, Optional[str]]] = set()
+            seen: set = set()
 
             for table in root.find_all(exp.Table):
                 table_parts = [table.catalog, table.db, table.name]
-                table_name = ".".join([part for part in table_parts if part])
+                table_name = ".".join([p for p in table_parts if p])
                 alias_expr = table.args.get("alias")
                 alias_name = alias_expr.name if alias_expr is not None else None
                 item = (table_name, alias_name)
                 if table_name and item not in seen:
                     seen.add(item)
                     pairs.append(item)
-
             return pairs
         except Exception:
             pass
 
-    # Fallback regex-based extraction for environments without sqlglot.
+    # Regex fallback
     query_one_line = " ".join(query.split())
     from_match = re.search(
         r"\bfrom\b\s+(.*?)(\bwhere\b|\bgroup\b|\border\b|\blimit\b|\bhaving\b|$)",
-        query_one_line,
-        flags=re.IGNORECASE,
+        query_one_line, flags=re.IGNORECASE,
     )
     if not from_match:
         return []
@@ -362,10 +412,7 @@ def extract_table_aliases(query: str) -> List[Tuple[str, Optional[str]]]:
         flags=re.IGNORECASE,
     )
 
-    pairs: List[Tuple[str, Optional[str]]] = []
+    pairs = []
     for match in pattern.finditer(from_clause):
-        table_name = match.group(1)
-        alias = match.group(2)
-        pairs.append((table_name, alias))
-
+        pairs.append((match.group(1), match.group(2)))
     return pairs
