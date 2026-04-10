@@ -528,12 +528,45 @@ SCAN_SETTINGS = {s for s, _ in PLANNER_SETTINGS_GROUPED["Scan Methods"]}
 JOIN_SETTINGS = {s for s, _ in PLANNER_SETTINGS_GROUPED["Join Methods"]}
 
 
+def _run_custom_explain(config: Dict[str, str], query: str,
+                        disabled: List[str]) -> Dict[str, Any]:
+    """Run EXPLAIN with specific planner settings disabled."""
+    try:
+        port = int(config.get("port", "5432"))
+    except ValueError:
+        raise ValueError("Port must be a number.")
+
+    db_cfg = preprocessing.DBConfig(
+        host=config.get("host", "localhost"), port=port,
+        dbname=config.get("dbname", "postgres"),
+        user=config.get("user", "postgres"),
+        password=config.get("password", ""),
+    )
+    conn = preprocessing.connect_postgres(db_cfg)
+    try:
+        normalized = preprocessing.ensure_single_statement(query)
+        with conn.cursor() as cur:
+            cur.execute("BEGIN")
+            for setting in disabled:
+                cur.execute(f"SET LOCAL {setting} TO off")
+            cur.execute(f"EXPLAIN (FORMAT JSON, COSTS TRUE) {normalized}")
+            row = cur.fetchone()
+            cur.execute("ROLLBACK")
+        if row is None:
+            raise RuntimeError("No EXPLAIN output returned.")
+        return preprocessing._parse_explain_payload(row[0])
+    finally:
+        conn.close()
+
+
+@st.fragment
 def _render_custom_aqp(config: Dict[str, str], query: str,
                        baseline_cost: float, qep_json: Dict[str, Any]) -> None:
 
     st.markdown(
-        "Toggle **on** the methods you want PostgreSQL to consider then click **Generate Custom AQP**.\n\n"
-        "PostgreSQL requires at least 1 scan method and 1 join method to produce a valid plan."
+        "Toggle **on** the methods you want PostgreSQL to consider, "
+        "then click **Generate Custom AQP**.\n\n"
+        "Minimum: **1 scan method** + **1 join method**."
     )
 
     if "custom_aqp_inited" not in st.session_state:
@@ -541,24 +574,18 @@ def _render_custom_aqp(config: Dict[str, str], query: str,
             st.session_state[f"custom_aqp_{setting}"] = False
         st.session_state["custom_aqp_inited"] = True
 
-    # clicking on checkbox causes the tabs to switch to the first tab
-    with st.form("custom_aqp_form"):
-        cols = st.columns(len(PLANNER_SETTINGS_GROUPED))
-        for col, (group_name, settings) in zip(cols, PLANNER_SETTINGS_GROUPED.items()):
-            with col:
-                st.markdown(f"**{group_name}**")
-                for setting, label in settings:
-                    st.checkbox(label, key=f"custom_aqp_{setting}")
+    # Checkboxes — @st.fragment keeps reruns local so tabs won't reset
+    cols = st.columns(len(PLANNER_SETTINGS_GROUPED))
+    for col, (group_name, settings) in zip(cols, PLANNER_SETTINGS_GROUPED.items()):
+        with col:
+            st.markdown(f"**{group_name}**")
+            for setting, label in settings:
+                st.checkbox(label, key=f"custom_aqp_{setting}")
 
-        submitted = st.form_submit_button(
-            "Generate Custom AQP",
-            type="primary"
-        )
-
-    # get enabled settings
     enabled_settings = [
         s for s in ALL_SETTINGS if st.session_state.get(f"custom_aqp_{s}")
     ]
+    disabled_settings = [s for s in ALL_SETTINGS if s not in enabled_settings]
     enabled_scans = [s for s in enabled_settings if s in SCAN_SETTINGS]
     enabled_joins = [s for s in enabled_settings if s in JOIN_SETTINGS]
 
@@ -570,23 +597,25 @@ def _render_custom_aqp(config: Dict[str, str], query: str,
         st.caption("All methods disabled.")
 
     if not enabled_scans:
-        st.warning(
-            "Choose at least 1 scan method."
-        )
+        st.warning("Choose at least 1 scan method.")
     if not enabled_joins:
-        st.warning(
-            "Choose at least 1 join method."
-        )
+        st.warning("Choose at least 1 join method.")
 
-    if submitted:
+    can_run = bool(enabled_scans) and bool(enabled_joins)
+
+    if st.button("Generate Custom AQP", type="primary", disabled=not can_run):
         if not query.strip():
-            st.warning("Enter a query and click Run Annotation.")
+            st.warning("Enter a query and click Run Annotation first.")
             return
-        if not enabled_scans or not enabled_joins:
-            st.error(
-                "Cannot generate plan."
-            )
-            return
+        with st.spinner("Running custom EXPLAIN..."):
+            try:
+                custom_plan = _run_custom_explain(config, query, disabled_settings)
+                st.session_state["custom_aqp_plan"] = custom_plan
+                st.session_state["custom_aqp_disabled"] = disabled_settings.copy()
+                st.session_state["custom_aqp_enabled"] = enabled_settings.copy()
+            except Exception as exc:
+                st.error(f"Error: {exc}")
+                return
 
     custom_plan = st.session_state.get("custom_aqp_plan")
     custom_enabled = st.session_state.get("custom_aqp_enabled", [])
