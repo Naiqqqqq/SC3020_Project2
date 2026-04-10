@@ -532,6 +532,192 @@ def _render_single_tree(plan_json: Dict[str, Any]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Tab 5 — Custom AQP Configuration
+# ---------------------------------------------------------------------------
+
+PLANNER_SETTINGS_GROUPED = {
+    "Scan Methods": [
+        ("enable_seqscan", "Sequential Scan"),
+        ("enable_indexscan", "Index Scan"),
+        ("enable_indexonlyscan", "Index Only Scan"),
+        ("enable_bitmapscan", "Bitmap Scan"),
+        ("enable_tidscan", "TID Scan"),
+    ],
+    "Join Methods": [
+        ("enable_nestloop", "Nested Loop Join"),
+        ("enable_hashjoin", "Hash Join"),
+        ("enable_mergejoin", "Merge Join"),
+    ],
+    "Other Operations": [
+        ("enable_sort", "Sort"),
+        ("enable_material", "Materialize"),
+        ("enable_hashagg", "Hash Aggregate"),
+        ("enable_gathermerge", "Gather Merge"),
+    ],
+}
+
+ALL_SETTINGS = [s for group in PLANNER_SETTINGS_GROUPED.values() for s, _ in group]
+SCAN_SETTINGS = {s for s, _ in PLANNER_SETTINGS_GROUPED["Scan Methods"]}
+JOIN_SETTINGS = {s for s, _ in PLANNER_SETTINGS_GROUPED["Join Methods"]}
+
+
+def _run_custom_explain(config: Dict[str, str], query: str,
+                        disabled: List[str]) -> Dict[str, Any]:
+    """Run EXPLAIN with specific planner settings disabled."""
+    try:
+        port = int(config.get("port", "5432"))
+    except ValueError:
+        raise ValueError("Port must be a number.")
+
+    db_cfg = preprocessing.DBConfig(
+        host=config.get("host", "localhost"), port=port,
+        dbname=config.get("dbname", "postgres"),
+        user=config.get("user", "postgres"),
+        password=config.get("password", ""),
+    )
+    conn = preprocessing.connect_postgres(db_cfg)
+    try:
+        normalized = preprocessing.ensure_single_statement(query)
+        with conn.cursor() as cur:
+            cur.execute("BEGIN")
+            for setting in disabled:
+                cur.execute(f"SET LOCAL {setting} TO off")
+            cur.execute(f"EXPLAIN (FORMAT JSON, COSTS TRUE) {normalized}")
+            row = cur.fetchone()
+            cur.execute("ROLLBACK")
+        if row is None:
+            raise RuntimeError("No EXPLAIN output returned.")
+        return preprocessing._parse_explain_payload(row[0])
+    finally:
+        conn.close()
+
+
+def _render_custom_aqp(config: Dict[str, str], query: str,
+                       baseline_cost: float, qep_json: Dict[str, Any]) -> None:
+    """Tab for user-selected planner configuration.
+
+    All methods start DISABLED (off). The user toggles ON the ones they
+    want the planner to consider. At least one scan and one join method
+    must remain enabled for PostgreSQL to produce a valid plan.
+    """
+
+    st.markdown(
+        "All planner methods start **disabled**. "
+        "Toggle **on** the methods you want PostgreSQL to consider, "
+        "then click **Generate Custom AQP**."
+    )
+
+    # --- Initialise session defaults: everything off ---
+    if "custom_aqp_inited" not in st.session_state:
+        for setting in ALL_SETTINGS:
+            st.session_state[f"custom_aqp_{setting}"] = False
+        st.session_state["custom_aqp_inited"] = True
+
+    # --- Form wraps checkboxes + submit so toggling won't cause a rerun ---
+    with st.form("custom_aqp_form"):
+        cols = st.columns(len(PLANNER_SETTINGS_GROUPED))
+        for col, (group_name, settings) in zip(cols, PLANNER_SETTINGS_GROUPED.items()):
+            with col:
+                st.markdown(f"**{group_name}**")
+                for setting, label in settings:
+                    st.checkbox(label, key=f"custom_aqp_{setting}")
+
+        submitted = st.form_submit_button(
+            "Generate Custom AQP", type="primary"
+        )
+
+    # --- Derive enabled / disabled from current session state ---
+    enabled_settings = [
+        s for s in ALL_SETTINGS if st.session_state.get(f"custom_aqp_{s}")
+    ]
+    disabled_settings = [s for s in ALL_SETTINGS if s not in enabled_settings]
+    enabled_scans = [s for s in enabled_settings if s in SCAN_SETTINGS]
+    enabled_joins = [s for s in enabled_settings if s in JOIN_SETTINGS]
+
+    # --- Summary + warnings ---
+    if enabled_settings:
+        st.markdown(
+            "Enabled: " + ", ".join(f"`{s[7:]}`" for s in enabled_settings)
+        )
+    else:
+        st.caption("All methods disabled.")
+
+    if not enabled_scans:
+        st.warning(
+            "No scan method is enabled. PostgreSQL requires at least one "
+            "scan method (e.g. Sequential Scan) to read tables."
+        )
+    if not enabled_joins:
+        st.warning(
+            "No join method is enabled. If your query involves joins, "
+            "PostgreSQL needs at least one join method."
+        )
+
+    # --- Handle form submission ---
+    if submitted:
+        if not query.strip():
+            st.warning("No query to run. Enter a query and click Run Annotation first.")
+            return
+        if not enabled_scans or not enabled_joins:
+            st.error(
+                "Cannot generate plan: enable at least one scan method "
+                "and one join method."
+            )
+            return
+        with st.spinner("Running custom EXPLAIN..."):
+            try:
+                custom_plan = _run_custom_explain(config, query, disabled_settings)
+                st.session_state["custom_aqp_plan"] = custom_plan
+                st.session_state["custom_aqp_disabled"] = disabled_settings.copy()
+                st.session_state["custom_aqp_enabled"] = enabled_settings.copy()
+            except Exception as exc:
+                st.error(f"Error: {exc}")
+                return
+
+    # --- Display results ---
+    custom_plan = st.session_state.get("custom_aqp_plan")
+    custom_disabled = st.session_state.get("custom_aqp_disabled", [])
+    custom_enabled = st.session_state.get("custom_aqp_enabled", [])
+    if custom_plan is None:
+        return
+
+    custom_cost = preprocessing.extract_total_cost(custom_plan)
+    ratio = custom_cost / baseline_cost if baseline_cost > 0 else float("inf")
+
+    st.divider()
+
+    # Metrics row
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("QEP Baseline Cost", f"{baseline_cost:,.2f}")
+    c2.metric("Custom AQP Cost", f"{custom_cost:,.2f}")
+    c3.metric("Cost Ratio", f"{ratio:.2f}x",
+              delta=f"{(ratio - 1) * 100:+.1f}%",
+              delta_color="inverse")
+    c4.metric("Methods Enabled", f"{len(custom_enabled)} / {len(ALL_SETTINGS)}")
+
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+    # Sub-tabs: side-by-side trees, text tree, raw JSON
+    sub_vis, sub_txt, sub_json = st.tabs(["Visual Comparison", "Text Tree", "Raw JSON"])
+
+    with sub_vis:
+        col_qep, col_custom = st.columns(2)
+        with col_qep:
+            st.markdown("##### QEP (Baseline)")
+            _render_single_tree(qep_json)
+        with col_custom:
+            enabled_label = ", ".join(s[7:] for s in custom_enabled) or "none"
+            st.markdown(f"##### Custom AQP (enabled: {enabled_label})")
+            _render_single_tree(custom_plan)
+
+    with sub_txt:
+        st.code(preprocessing.format_plan_tree(custom_plan), language=None)
+
+    with sub_json:
+        st.json(custom_plan)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -584,11 +770,12 @@ def main() -> None:
 
     st.divider()
 
-    tab_ann, tab_tree, tab_aqp, tab_aqp_trees = st.tabs([
+    tab_ann, tab_tree, tab_aqp, tab_aqp_trees, tab_custom = st.tabs([
         "Annotated Query",
         "QEP Tree",
         "AQP Comparison Table",
         "AQP Comparison Trees",
+        "Custom AQP Config",
     ])
 
     with tab_ann:
@@ -599,5 +786,8 @@ def main() -> None:
         _render_aqp_table(result.bundle)
     with tab_aqp_trees:
         _render_aqp_trees(result.bundle)
+    with tab_custom:
+        _render_custom_aqp(config, query, result.bundle.qep_total_cost,
+                           result.raw_qep)
 
 main()
