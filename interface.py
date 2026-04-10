@@ -129,38 +129,6 @@ def _render_sidebar() -> Dict[str, str]:
     return config
 
 
-@st.cache_data
-def _load_demo_queries() -> List[Dict[str, str]]:
-    demo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "demo_queries.sql")
-    if not os.path.isfile(demo_path):
-        return []
-    with open(demo_path, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    queries: List[Dict[str, str]] = []
-    current_lines: List[str] = []
-    current_label = ""
-
-    for line in content.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("--") and not current_lines:
-            current_label = stripped.lstrip("- ").strip()
-            continue
-        current_lines.append(line)
-        if stripped.endswith(";"):
-            sql = "\n".join(current_lines).strip()
-            if sql:
-                preview = sql.replace("\n", " ")[:60]
-                label = f"{current_label}:  {preview}..." if current_label else f"{preview}..."
-                queries.append({"label": label, "sql": sql})
-            current_lines = []
-            current_label = ""
-
-    if current_lines:
-        sql = "\n".join(current_lines).strip()
-        if sql:
-            queries.append({"label": current_label or sql[:60], "sql": sql})
-    return queries
 
 ### PIPELINE
 def _run(config: Dict[str, str], query: str) -> Any:
