@@ -533,7 +533,7 @@ def _render_custom_aqp(config: Dict[str, str], query: str,
 
     st.markdown(
         "Toggle **on** the methods you want PostgreSQL to consider then click **Generate Custom AQP**.\n\n"
-        "PostgreSQL requires at least 1 scan method and 1 join method to product a valid plan."
+        "PostgreSQL requires at least 1 scan method and 1 join method to produce a valid plan."
     )
 
     if "custom_aqp_inited" not in st.session_state:
