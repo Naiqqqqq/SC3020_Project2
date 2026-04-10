@@ -1,9 +1,3 @@
-"""Streamlit GUI for SC3020 Project 2 — Plan-Based SQL Annotation.
-
-Run directly:   streamlit run interface.py
-Via project.py:  python project.py
-"""
-
 from __future__ import annotations
 
 import os
@@ -15,9 +9,7 @@ import annotation
 import preprocessing
 from annotation import StructuredAnnotation, InlineAnnotation
 
-# ---------------------------------------------------------------------------
-# Page config
-# ---------------------------------------------------------------------------
+### PAGE CONFIG
 st.set_page_config(
     page_title="SC3020 — SQL Query Annotation",
     page_icon="🔍",
@@ -25,9 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ---------------------------------------------------------------------------
-# Theme-aware CSS — works in both light and dark Streamlit themes
-# ---------------------------------------------------------------------------
+### Theme works in both light and dark Streamlit themes
 st.markdown("""
 <style>
     /* General layout */
@@ -100,10 +90,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ---------------------------------------------------------------------------
-# Sidebar
-# ---------------------------------------------------------------------------
 
+### SIDEBAR
 def _render_sidebar() -> Dict[str, str]:
     with st.sidebar:
         st.markdown("### Database Connection")
@@ -196,20 +184,12 @@ def _load_demo_queries() -> List[Dict[str, str]]:
             queries.append({"label": current_label or sql[:60], "sql": sql})
     return queries
 
-
-# ---------------------------------------------------------------------------
-# Pipeline
-# ---------------------------------------------------------------------------
-
+### PIPELINE
 def _run(config: Dict[str, str], query: str) -> Any:
     from project import run_pipeline
     return run_pipeline(config, query)
 
-
-# ---------------------------------------------------------------------------
-# Tab 1 — Annotated Query
-# ---------------------------------------------------------------------------
-
+### Tab 1 — Annotated Query
 CATEGORY_META = {
     "scan":      ("Table Access",   "cat-badge-scan",      "ann-card-scan"),
     "join":      ("Join Operation", "cat-badge-join",      "ann-card-join"),
@@ -291,10 +271,7 @@ def _render_annotated_query(structured: StructuredAnnotation) -> None:
             st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
 
-# ---------------------------------------------------------------------------
-# Tab 2 — QEP Tree
-# ---------------------------------------------------------------------------
-
+### Tab 2 — QEP Tree
 NODE_COLORS = {
     "Seq Scan": "#3B82F6", "Index Scan": "#10B981", "Index Only Scan": "#10B981",
     "Bitmap Heap Scan": "#6366F1", "Bitmap Index Scan": "#6366F1",
@@ -388,11 +365,7 @@ def _add_graphviz_nodes(
     for child in node.get("Plans", []):
         _add_graphviz_nodes(dot, child, node_id, cur_id)
 
-
-# ---------------------------------------------------------------------------
-# Tab 3 — AQP Comparison
-# ---------------------------------------------------------------------------
-
+### Tab 3 — AQP Table
 def _status_pill(status: str) -> str:
     cls_map = {
         "Much worse": "pill-much-worse", "Worse": "pill-worse",
@@ -466,10 +439,7 @@ def _render_aqp_table(bundle: preprocessing.PlanBundle) -> None:
     st.markdown(table_html, unsafe_allow_html=True)
 
 
-# ---------------------------------------------------------------------------
-# Tab 4 — AQP Trees
-# ---------------------------------------------------------------------------
-
+### Tab 4 - AQP Tree Comparison
 def _render_aqp_trees(bundle: preprocessing.PlanBundle) -> None:
     """Let the user pick an AQP and view its plan tree side-by-side with the QEP."""
     valid_aqps = [r for r in bundle.aqps if not r.note and r.plan_json.get("Plan")]
@@ -531,10 +501,7 @@ def _render_single_tree(plan_json: Dict[str, Any]) -> None:
         st.code(preprocessing.format_plan_tree(plan_json), language=None)
 
 
-# ---------------------------------------------------------------------------
-# Tab 5 — Custom AQP Configuration
-# ---------------------------------------------------------------------------
-
+### Tab 5 — Custom AQP
 PLANNER_SETTINGS_GROUPED = {
     "Scan Methods": [
         ("enable_seqscan", "Sequential Scan"),
@@ -561,59 +528,20 @@ SCAN_SETTINGS = {s for s, _ in PLANNER_SETTINGS_GROUPED["Scan Methods"]}
 JOIN_SETTINGS = {s for s, _ in PLANNER_SETTINGS_GROUPED["Join Methods"]}
 
 
-def _run_custom_explain(config: Dict[str, str], query: str,
-                        disabled: List[str]) -> Dict[str, Any]:
-    """Run EXPLAIN with specific planner settings disabled."""
-    try:
-        port = int(config.get("port", "5432"))
-    except ValueError:
-        raise ValueError("Port must be a number.")
-
-    db_cfg = preprocessing.DBConfig(
-        host=config.get("host", "localhost"), port=port,
-        dbname=config.get("dbname", "postgres"),
-        user=config.get("user", "postgres"),
-        password=config.get("password", ""),
-    )
-    conn = preprocessing.connect_postgres(db_cfg)
-    try:
-        normalized = preprocessing.ensure_single_statement(query)
-        with conn.cursor() as cur:
-            cur.execute("BEGIN")
-            for setting in disabled:
-                cur.execute(f"SET LOCAL {setting} TO off")
-            cur.execute(f"EXPLAIN (FORMAT JSON, COSTS TRUE) {normalized}")
-            row = cur.fetchone()
-            cur.execute("ROLLBACK")
-        if row is None:
-            raise RuntimeError("No EXPLAIN output returned.")
-        return preprocessing._parse_explain_payload(row[0])
-    finally:
-        conn.close()
-
-
 def _render_custom_aqp(config: Dict[str, str], query: str,
                        baseline_cost: float, qep_json: Dict[str, Any]) -> None:
-    """Tab for user-selected planner configuration.
-
-    All methods start DISABLED (off). The user toggles ON the ones they
-    want the planner to consider. At least one scan and one join method
-    must remain enabled for PostgreSQL to produce a valid plan.
-    """
 
     st.markdown(
-        "All planner methods start **disabled**. "
-        "Toggle **on** the methods you want PostgreSQL to consider, "
-        "then click **Generate Custom AQP**."
+        "Toggle **on** the methods you want PostgreSQL to consider then click **Generate Custom AQP**.\n\n"
+        "PostgreSQL requires at least 1 scan method and 1 join method to product a valid plan."
     )
 
-    # --- Initialise session defaults: everything off ---
     if "custom_aqp_inited" not in st.session_state:
         for setting in ALL_SETTINGS:
             st.session_state[f"custom_aqp_{setting}"] = False
         st.session_state["custom_aqp_inited"] = True
 
-    # --- Form wraps checkboxes + submit so toggling won't cause a rerun ---
+    # clicking on checkbox causes the tabs to switch to the first tab
     with st.form("custom_aqp_form"):
         cols = st.columns(len(PLANNER_SETTINGS_GROUPED))
         for col, (group_name, settings) in zip(cols, PLANNER_SETTINGS_GROUPED.items()):
@@ -623,18 +551,17 @@ def _render_custom_aqp(config: Dict[str, str], query: str,
                     st.checkbox(label, key=f"custom_aqp_{setting}")
 
         submitted = st.form_submit_button(
-            "Generate Custom AQP", type="primary"
+            "Generate Custom AQP",
+            type="primary"
         )
 
-    # --- Derive enabled / disabled from current session state ---
+    # get enabled settings
     enabled_settings = [
         s for s in ALL_SETTINGS if st.session_state.get(f"custom_aqp_{s}")
     ]
-    disabled_settings = [s for s in ALL_SETTINGS if s not in enabled_settings]
     enabled_scans = [s for s in enabled_settings if s in SCAN_SETTINGS]
     enabled_joins = [s for s in enabled_settings if s in JOIN_SETTINGS]
 
-    # --- Summary + warnings ---
     if enabled_settings:
         st.markdown(
             "Enabled: " + ", ".join(f"`{s[7:]}`" for s in enabled_settings)
@@ -644,39 +571,24 @@ def _render_custom_aqp(config: Dict[str, str], query: str,
 
     if not enabled_scans:
         st.warning(
-            "No scan method is enabled. PostgreSQL requires at least one "
-            "scan method (e.g. Sequential Scan) to read tables."
+            "Choose at least 1 scan method."
         )
     if not enabled_joins:
         st.warning(
-            "No join method is enabled. If your query involves joins, "
-            "PostgreSQL needs at least one join method."
+            "Choose at least 1 join method."
         )
 
-    # --- Handle form submission ---
     if submitted:
         if not query.strip():
-            st.warning("No query to run. Enter a query and click Run Annotation first.")
+            st.warning("Enter a query and click Run Annotation.")
             return
         if not enabled_scans or not enabled_joins:
             st.error(
-                "Cannot generate plan: enable at least one scan method "
-                "and one join method."
+                "Cannot generate plan."
             )
             return
-        with st.spinner("Running custom EXPLAIN..."):
-            try:
-                custom_plan = _run_custom_explain(config, query, disabled_settings)
-                st.session_state["custom_aqp_plan"] = custom_plan
-                st.session_state["custom_aqp_disabled"] = disabled_settings.copy()
-                st.session_state["custom_aqp_enabled"] = enabled_settings.copy()
-            except Exception as exc:
-                st.error(f"Error: {exc}")
-                return
 
-    # --- Display results ---
     custom_plan = st.session_state.get("custom_aqp_plan")
-    custom_disabled = st.session_state.get("custom_aqp_disabled", [])
     custom_enabled = st.session_state.get("custom_aqp_enabled", [])
     if custom_plan is None:
         return
@@ -686,7 +598,6 @@ def _render_custom_aqp(config: Dict[str, str], query: str,
 
     st.divider()
 
-    # Metrics row
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("QEP Baseline Cost", f"{baseline_cost:,.2f}")
     c2.metric("Custom AQP Cost", f"{custom_cost:,.2f}")
@@ -697,8 +608,8 @@ def _render_custom_aqp(config: Dict[str, str], query: str,
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
-    # Sub-tabs: side-by-side trees, text tree, raw JSON
-    sub_vis, sub_txt, sub_json = st.tabs(["Visual Comparison", "Text Tree", "Raw JSON"])
+    # sub tabs: tree comparison, text, and JSON
+    sub_vis, sub_txt, sub_json = st.tabs(["Visual Tree", "Text Tree", "Raw JSON"])
 
     with sub_vis:
         col_qep, col_custom = st.columns(2)
@@ -707,7 +618,7 @@ def _render_custom_aqp(config: Dict[str, str], query: str,
             _render_single_tree(qep_json)
         with col_custom:
             enabled_label = ", ".join(s[7:] for s in custom_enabled) or "none"
-            st.markdown(f"##### Custom AQP (enabled: {enabled_label})")
+            st.markdown(f"##### Custom AQP (Enabled: {enabled_label})")
             _render_single_tree(custom_plan)
 
     with sub_txt:
@@ -717,10 +628,8 @@ def _render_custom_aqp(config: Dict[str, str], query: str,
         st.json(custom_plan)
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
+### MAIN
 def main() -> None:
     st.markdown(
         "<br/>"
