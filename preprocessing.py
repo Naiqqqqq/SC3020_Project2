@@ -347,9 +347,9 @@ def format_plan_tree(plan_json: Dict[str, Any]) -> str:
             else:
                 extras.append(str(relation))
         if startup is not None and total is not None:
-            extras.append(f"cost={startup:.2f}..{total:.2f}")
+            extras.append(f"Startup Cost={startup:.2f}; Total Cost={total:.2f}")
         if rows is not None:
-            extras.append(f"rows={rows}")
+            extras.append(f"Rows={rows}")
 
         suffix = f" ({'; '.join(extras)})" if extras else ""
         lines.append(f"{indent}- {node_type}{suffix}")

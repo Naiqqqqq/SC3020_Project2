@@ -364,13 +364,13 @@ def _add_graphviz_nodes(
     startup = node.get("Startup Cost")
     total = node.get("Total Cost")
     if startup is not None:
-        label_parts.append(f"startup cost: {startup:,.2f}")
+        label_parts.append(f"Startup cost: {startup:,.2f}")
     if total is not None:
-        label_parts.append(f"total cost: {total:,.2f}")
+        label_parts.append(f"Total cost: {total:,.2f}")
 
     rows = node.get("Plan Rows")
     if rows is not None:
-        label_parts.append(f"rows: {rows:,}")
+        label_parts.append(f"Rows: {rows:,}")
 
     for key in ("Hash Cond", "Merge Cond", "Join Filter", "Filter",
                 "Index Cond", "Sort Key", "Group Key"):
@@ -419,7 +419,7 @@ def _render_aqp_table(bundle: preprocessing.PlanBundle) -> None:
         '<table style="width:100%; border-collapse:collapse; font-size:0.88rem;">'
         '<thead><tr style="border-bottom:2px solid rgba(128,128,128,0.3);">'
         '<th style="text-align:left; padding:8px;">Disabled Setting</th>'
-        '<th style="text-align:left; padding:8px;">Resulting Join</th>'
+        '<th style="text-align:left; padding:8px;">Resulting Join Operator</th>'
         '<th style="text-align:right; padding:8px;">Total Cost</th>'
         '<th style="text-align:right; padding:8px;">Ratio</th>'
         '<th style="text-align:center; padding:8px;">Status</th>'
@@ -477,8 +477,8 @@ def _render_aqp_trees(bundle: preprocessing.PlanBundle) -> None:
         st.warning("No alternative plans were generated successfully.")
         return
 
-    labels = [f"{r.setting[7:]}  (cost: {r.total_cost:,.2f})" for r in valid_aqps]
-    chosen = st.selectbox("Select an AQP to view", labels)
+    labels = [f"{r.setting[7:]}  (Cost: {r.total_cost:,.2f})" for r in valid_aqps]
+    chosen = st.selectbox("Select a disabled setting to view AQP", labels)
     idx = labels.index(chosen)
     rec = valid_aqps[idx]
 
@@ -587,8 +587,8 @@ def main() -> None:
     tab_ann, tab_tree, tab_aqp, tab_aqp_trees = st.tabs([
         "Annotated Query",
         "QEP Tree",
-        "AQP Comparison",
-        "AQP Trees",
+        "AQP Comparison Table",
+        "AQP Comparison Trees",
     ])
 
     with tab_ann:
@@ -600,8 +600,4 @@ def main() -> None:
     with tab_aqp_trees:
         _render_aqp_trees(result.bundle)
 
-
-if __name__ == "__main__":
-    main()
-else:
-    main()
+main()
