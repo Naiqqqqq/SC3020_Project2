@@ -125,28 +125,6 @@ def _render_sidebar() -> Dict[str, str]:
             except Exception as exc:
                 st.error(f"Failed: {exc}")
 
-        st.divider()
-        st.markdown("### Demo Queries")
-        demos = _load_demo_queries()
-        if demos:
-            labels = [d["label"] for d in demos]
-            options = ["-- select --"] + labels
-
-            def _on_demo_change() -> None:
-                picked = st.session_state.get("demo_select", "-- select --")
-                if picked != "-- select --":
-                    idx = labels.index(picked)
-                    st.session_state["sql_area"] = demos[idx]["sql"]
-                    st.session_state["demo_select"] = "-- select --"
-
-            st.selectbox(
-                "Pick a demo query", options,
-                key="demo_select",
-                on_change=_on_demo_change,
-                label_visibility="collapsed",
-            )
-        else:
-            st.caption("demo_queries.sql not found.")
 
     return config
 
@@ -574,7 +552,7 @@ def _render_custom_aqp(config: Dict[str, str], query: str,
             st.session_state[f"custom_aqp_{setting}"] = False
         st.session_state["custom_aqp_inited"] = True
 
-    # Checkboxes — @st.fragment keeps reruns local so tabs won't reset
+    # Stop local tabs from reseting checkboxes
     cols = st.columns(len(PLANNER_SETTINGS_GROUPED))
     for col, (group_name, settings) in zip(cols, PLANNER_SETTINGS_GROUPED.items()):
         with col:
