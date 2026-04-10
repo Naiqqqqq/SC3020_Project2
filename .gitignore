@@ -3,9 +3,13 @@
 __pycache__/
 *.pyc
 
+# Streamlit
+.streamlit/
+
 # VS/IDE
 .vs/
 .vscode/
+.cursor/
 
 # Large datasets and generated benchmark files
 TPC-H V3.0.1/ref_data/
