@@ -1,0 +1,204 @@
+<mxfile host="app.diagrams.net" modified="2026-04-11T00:00:00.000Z" agent="draw.io" version="24.0.0" type="device">
+  <diagram id="architecture" name="System Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="SC3020 Project 2 — System Architecture" style="text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="500" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- User -->
+        <mxCell id="user" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="280" width="40" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- project.py box -->
+        <mxCell id="project_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;dashPattern=5 5;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="200" y="100" width="1200" height="600" as="geometry"/>
+        </mxCell>
+        <mxCell id="project_label" value="project.py — Entry Point &amp; Pipeline Orchestrator" style="text;html=1;fontSize=14;fontStyle=1;align=left;verticalAlign=top;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="220" y="110" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- project.py: main() -->
+        <mxCell id="main_fn" value="main()&#xa;Entry Point" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="280" width="130" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- project.py: run_pipeline() -->
+        <mxCell id="pipeline_fn" value="run_pipeline()&#xa;End-to-End Pipeline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="280" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- preprocessing.py module -->
+        <mxCell id="preproc_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="680" y="150" width="340" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="preproc_label" value="preprocessing.py" style="text;html=1;fontSize=13;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="680" y="155" width="340" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pp_sql" value="SQL Normalization&#xa;&amp; Statement Splitting" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="190" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="pp_conn" value="PostgreSQL&#xa;Connection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="860" y="190" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="pp_explain" value="EXPLAIN&#xa;(QEP Retrieval)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="260" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="pp_aqp" value="AQP Generation&#xa;(SET LOCAL ... off)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="860" y="260" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="pp_tree" value="Plan Tree&#xa;Traversal &amp; Format" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="330" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="pp_table" value="Table/Alias&#xa;Extraction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="860" y="330" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- annotation.py module -->
+        <mxCell id="annot_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="680" y="440" width="340" height="230" as="geometry"/>
+        </mxCell>
+        <mxCell id="annot_label" value="annotation.py" style="text;html=1;fontSize=13;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="680" y="445" width="340" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="an_scan" value="Scan Note&#xa;Builder" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="480" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="an_join" value="Join Note&#xa;Builder" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="810" y="480" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="an_reason" value="Cost-Based&#xa;Reasoning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="920" y="480" width="80" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="an_other" value="Other Ops&#xa;(Sort/Agg/Limit)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="545" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="an_inline" value="Inline Annotation&#xa;Mapper" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="830" y="545" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="an_gen" value="generate_annotation()&#xa;Public API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="740" y="610" width="220" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- interface.py module -->
+        <mxCell id="ui_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="150" width="280" height="520" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_label" value="interface.py (Streamlit GUI)" style="text;html=1;fontSize=13;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="155" width="280" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ui_sidebar" value="Sidebar&#xa;(DB Config)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="195" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_query" value="Query Input&#xa;&amp; Run Button" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="195" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_tab1" value="Tab 1: Annotated&#xa;Query Display" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="265" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_tab2" value="Tab 2: QEP Tree&#xa;(Graphviz / Text / JSON)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="320" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_tab3" value="Tab 3: AQP&#xa;Comparison Table" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="375" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_tab4" value="Tab 4: AQP Tree&#xa;Side-by-Side" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="430" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_tab5" value="Tab 5: Custom AQP&#xa;(Toggle Planner Knobs)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="485" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_graphviz" value="Graphviz&#xa;Renderer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="545" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui_css" value="Custom CSS&#xa;Theme" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="545" width="110" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- PostgreSQL Database -->
+        <mxCell id="postgres" value="PostgreSQL&#xa;Database&#xa;(TPC-H)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="80" width="120" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Browser -->
+        <mxCell id="browser" value="Web Browser&#xa;localhost:8501" style="shape=mxgraph.mockup.containers.browserWindow;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#6c8ebf;fontSize=11;mainText=;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="700" width="200" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="1" source="user" target="main_fn">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1_label" value="SQL Query&#xa;(CLI or GUI)" style="edgeLabel;html=1;fontSize=10;" vertex="1" connectable="0" parent="e1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333;" edge="1" parent="1" source="main_fn" target="pipeline_fn">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="pipeline_fn" target="preproc_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3_label" value="1. Normalize &amp;&#xa;   EXPLAIN" style="edgeLabel;html=1;fontSize=10;" vertex="1" connectable="0" parent="e3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="pipeline_fn" target="annot_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4_label" value="2. Annotate" style="edgeLabel;html=1;fontSize=10;" vertex="1" connectable="0" parent="e4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#d6b656;" edge="1" parent="1" source="pipeline_fn" target="ui_box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="530" y="200"/>
+              <mxPoint x="1070" y="200"/>
+              <mxPoint x="1070" y="400"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5_label" value="3. Render" style="edgeLabel;html=1;fontSize=10;" vertex="1" connectable="0" parent="e5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="pp_conn" target="postgres">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6_label" value="psycopg2" style="edgeLabel;html=1;fontSize=10;" vertex="1" connectable="0" parent="e6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=1.5;strokeColor=#82b366;dashed=1;" edge="1" parent="1" source="annot_box" target="preproc_box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="550"/>
+              <mxPoint x="670" y="370"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7_label" value="imports:&#xa;iter_plan_nodes&#xa;extract_table_aliases" style="edgeLabel;html=1;fontSize=9;align=left;" vertex="1" connectable="0" parent="e7">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=1.5;strokeColor=#d6b656;dashed=1;" edge="1" parent="1" source="ui_box" target="browser">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8_label" value="Streamlit&#xa;HTTP" style="edgeLabel;html=1;fontSize=10;" vertex="1" connectable="0" parent="e8">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

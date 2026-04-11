@@ -1,0 +1,256 @@
+<mxfile host="app.diagrams.net" modified="2026-04-11T00:00:00.000Z" agent="draw.io" version="24.0.0" type="device">
+  <diagram id="pipeline" name="Data Flow Pipeline">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="SC3020 Project 2 — End-to-End Data Flow Pipeline" style="text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="450" y="20" width="600" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Phase labels -->
+        <mxCell id="phase1_label" value="PHASE 1: Input &amp; Validation" style="text;html=1;fontSize=12;fontStyle=5;align=center;fillColor=#E3F2FD;rounded=1;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="250" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="phase2_label" value="PHASE 2: Plan Retrieval" style="text;html=1;fontSize=12;fontStyle=5;align=center;fillColor=#FFF9C4;rounded=1;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="420" y="80" width="250" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="phase3_label" value="PHASE 3: Annotation" style="text;html=1;fontSize=12;fontStyle=5;align=center;fillColor=#C8E6C9;rounded=1;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="740" y="80" width="250" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="phase4_label" value="PHASE 4: Presentation" style="text;html=1;fontSize=12;fontStyle=5;align=center;fillColor=#F8CECC;rounded=1;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="80" width="250" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 1: User Input -->
+        <mxCell id="input" value="SQL Query&#xa;(from GUI text area&#xa;or CLI --query)" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;perimeter=parallelogramPerimeter;" vertex="1" parent="1">
+          <mxGeometry x="100" y="140" width="200" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 2: Split -->
+        <mxCell id="split" value="split_sql_statements()&#xa;&#xa;sqlglot AST parse&#xa;or fallback char splitter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="115" y="240" width="170" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 3: Validate -->
+        <mxCell id="validate" value="ensure_single_statement()&#xa;&#xa;Exactly 1 statement?&#xa;Else raise ValueError" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="105" y="350" width="190" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 4: Normalize -->
+        <mxCell id="normalize" value="normalize_query()&#xa;&#xa;Strip whitespace&#xa;Remove trailing ;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="130" y="510" width="140" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 5: Connect -->
+        <mxCell id="connect" value="connect_postgres()&#xa;&#xa;psycopg2.connect(&#xa;  host, port, dbname,&#xa;  user, password)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="140" width="170" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 6: QEP -->
+        <mxCell id="qep" value="EXPLAIN (FORMAT JSON,&#xa;COSTS TRUE) query&#xa;&#xa;→ QEP JSON" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="260" width="170" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- PostgreSQL -->
+        <mxCell id="pg" value="PostgreSQL" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="290" width="60" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 7: AQP Loop -->
+        <mxCell id="aqp_loop" value="FOR each planner setting&#xa;(10 settings):" style="shape=hexagon;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=1;perimeter=hexagonPerimeter2;size=15;" vertex="1" parent="1">
+          <mxGeometry x="420" y="370" width="170" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 7a: BEGIN -->
+        <mxCell id="begin" value="BEGIN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="450" width="60" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 7b: SET LOCAL -->
+        <mxCell id="setlocal" value="SET LOCAL&#xa;enable_X TO off" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="430" y="500" width="100" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 7c: EXPLAIN -->
+        <mxCell id="aqp_explain" value="EXPLAIN → AQP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="545" y="500" width="100" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 7d: ROLLBACK -->
+        <mxCell id="rollback" value="ROLLBACK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="555" y="450" width="60" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- PlanBundle data -->
+        <mxCell id="bundle" value="PlanBundle&#xa;&#xa;• query&#xa;• qep_json&#xa;• qep_total_cost&#xa;• aqps: List[AQPRecord]" style="shape=note;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=10;fontStyle=0;backgroundOutline=1;size=20;" vertex="1" parent="1">
+          <mxGeometry x="430" y="580" width="170" height="110" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 8: Collect plan info -->
+        <mxCell id="collect_scan" value="_collect_scan_info()&#xa;DFS → scan nodes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="140" width="140" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="collect_join" value="_collect_join_info()&#xa;DFS → join nodes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="200" width="140" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="collect_other" value="_collect_other_ops()&#xa;DFS → sort/agg/limit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="260" width="140" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="extract_tables" value="extract_table_aliases()&#xa;sqlglot or regex" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="140" width="140" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 9: Build notes -->
+        <mxCell id="scan_notes" value="_build_scan_notes()&#xa;&#xa;For each table:&#xa;match to scan node,&#xa;compare vs seqscan AQP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="340" width="150" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="join_notes" value="_build_join_notes()&#xa;&#xa;Per join: type,&#xa;condition, operator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="910" y="340" width="130" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 10: Reasoning -->
+        <mxCell id="reasoning" value="_build_reasoning_notes()&#xa;&#xa;For each QEP join op:&#xa;  ratio = AQP_cost / QEP_cost&#xa;  Compare all alternatives&#xa;  Generate &quot;why&quot; explanation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#82b366;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="740" y="450" width="200" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="other_notes" value="_build_other_notes()&#xa;Sort, Agg, Limit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="960" y="460" width="120" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 11: Inline mapping -->
+        <mxCell id="inline_map" value="_build_inline_annotations()&#xa;&#xa;Map notes → SQL clause ranges&#xa;scan→FROM, join→WHERE,&#xa;sort→ORDER BY, agg→GROUP BY" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#82b366;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="590" width="210" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 12: Output -->
+        <mxCell id="annot_result" value="AnnotationResult&#xa;&#xa;• annotated_query (text)&#xa;• component_notes&#xa;• reasoning_notes&#xa;• structured (for GUI)" style="shape=note;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#82b366;fontSize=10;backgroundOutline=1;size=20;" vertex="1" parent="1">
+          <mxGeometry x="770" y="710" width="180" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Presentation outputs -->
+        <mxCell id="cli_out" value="CLI Output&#xa;&#xa;Annotated SQL&#xa;Plan Tree Text&#xa;AQP Summary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="140" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="gui_tab1" value="Tab 1: Annotated Query&#xa;Color-coded SQL + cards" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="250" width="180" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="gui_tab2" value="Tab 2: QEP Tree&#xa;Graphviz / Text / JSON" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="315" width="180" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="gui_tab3" value="Tab 3: AQP Table&#xa;All AQPs with cost ratios" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="380" width="180" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="gui_tab4" value="Tab 4: AQP Trees&#xa;Side-by-side comparison" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="445" width="180" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="gui_tab5" value="Tab 5: Custom AQP&#xa;Manual planner toggles" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="510" width="180" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" edge="1" parent="1" source="input" target="split">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" edge="1" parent="1" source="split" target="validate">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" edge="1" parent="1" source="validate" target="normalize">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" edge="1" parent="1" source="normalize" target="connect">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="600"/>
+              <mxPoint x="380" y="600"/>
+              <mxPoint x="380" y="180"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" edge="1" parent="1" source="connect" target="qep">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5b" style="rounded=1;strokeWidth=1.5;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="pg" target="qep">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" edge="1" parent="1" source="qep" target="aqp_loop">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e7a" style="rounded=1;strokeWidth=1.5;" edge="1" parent="1" source="aqp_loop" target="begin">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7b" style="rounded=1;strokeWidth=1.5;" edge="1" parent="1" source="begin" target="setlocal">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7c" style="rounded=1;strokeWidth=1.5;" edge="1" parent="1" source="setlocal" target="aqp_explain">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7d" style="rounded=1;strokeWidth=1.5;" edge="1" parent="1" source="aqp_explain" target="rollback">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" edge="1" parent="1" source="aqp_loop" target="bundle">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="395"/>
+              <mxPoint x="620" y="630"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8_label" value="produces" style="edgeLabel;html=1;fontSize=10;" vertex="1" connectable="0" parent="e8">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="bundle" target="scan_notes">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="635"/>
+              <mxPoint x="650" y="380"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e10" style="rounded=1;strokeWidth=1.5;strokeColor=#82b366;" edge="1" parent="1" source="scan_notes" target="reasoning">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e11" style="rounded=1;strokeWidth=1.5;strokeColor=#82b366;" edge="1" parent="1" source="join_notes" target="reasoning">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="reasoning" target="inline_map">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e12b" style="rounded=1;strokeWidth=1.5;strokeColor=#82b366;" edge="1" parent="1" source="other_notes" target="inline_map">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="inline_map" target="annot_result">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- To presentation -->
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#b85450;" edge="1" parent="1" source="annot_result" target="gui_tab1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1000" y="760"/>
+              <mxPoint x="1000" y="273"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=1.5;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="bundle" target="gui_tab3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="515" y="710"/>
+              <mxPoint x="1040" y="710"/>
+              <mxPoint x="1040" y="403"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
