@@ -473,6 +473,15 @@ ALL_SETTINGS = [s for group in PLANNER_SETTINGS_GROUPED.values() for s, _ in gro
 SCAN_SETTINGS = {s for s, _ in PLANNER_SETTINGS_GROUPED["Scan Methods"]}
 JOIN_SETTINGS = {s for s, _ in PLANNER_SETTINGS_GROUPED["Join Methods"]}
 
+def _plan_contains_node_type(plan_json: Dict[str, Any], node_type: str) -> bool:
+    root = plan_json.get("Plan")
+    if not root:
+        return False
+    for node in preprocessing.iter_plan_nodes(root):
+        if node.get("Node Type") == node_type:
+            return True
+    return False
+
 
 def _run_custom_explain(config: Dict[str, str], query: str,
                         disabled: List[str]) -> Dict[str, Any]:
@@ -513,6 +522,13 @@ def _render_custom_aqp(config: Dict[str, str], query: str,
         "Toggle **on** the methods you want PostgreSQL to consider, "
         "then click **Generate Custom AQP**.\n\n"
         "Minimum: **1 scan method** + **1 join method**."
+    )
+    st.info(
+        "**Why you might still see Sequential Scan:** if Sequential Scan is "
+        "unchecked but the plan shows `Seq Scan`, PostgreSQL is allowed to fall "
+        "back when no other enabled scan can legally read the table "
+        "(e.g., there is **no suitable index** for a filter/join, or only TID scan is "
+        "checked)"
     )
 
     if "custom_aqp_inited" not in st.session_state:
@@ -565,8 +581,19 @@ def _render_custom_aqp(config: Dict[str, str], query: str,
 
     custom_plan = st.session_state.get("custom_aqp_plan")
     custom_enabled = st.session_state.get("custom_aqp_enabled", [])
+    custom_disabled = st.session_state.get("custom_aqp_disabled", [])
     if custom_plan is None:
         return
+
+    if (
+        "enable_seqscan" in custom_disabled
+        and _plan_contains_node_type(custom_plan, "Seq Scan")
+    ):
+        st.warning(
+            "This plan still contains **Seq Scan** even though sequential scan was "
+            "turned off because no enabled scan type could produce a valid path "
+            "for the filtered/joined columns (no usable index)."
+        )
 
     custom_cost = preprocessing.extract_total_cost(custom_plan)
     ratio = custom_cost / baseline_cost if baseline_cost > 0 else float("inf")
